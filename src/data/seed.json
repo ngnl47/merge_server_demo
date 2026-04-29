@@ -1,0 +1,51 @@
+[
+  {
+    "id": "node-1",
+    "key": "1服",
+    "value": "1服",
+    "startTime": "2024-01-01T00:00:00.000Z",
+    "endTime": "2024-03-01T00:00:00.000Z"
+  },
+  {
+    "id": "node-2",
+    "key": "1服",
+    "value": "2服",
+    "startTime": "2024-03-01T00:00:00.000Z",
+    "endTime": null
+  },
+  {
+    "id": "node-3",
+    "key": "2服",
+    "value": "2服",
+    "startTime": "2024-01-01T00:00:00.000Z",
+    "endTime": null
+  },
+  {
+    "id": "node-4",
+    "key": "3服",
+    "value": "3服",
+    "startTime": "2024-01-01T00:00:00.000Z",
+    "endTime": "2024-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "node-5",
+    "key": "3服",
+    "value": "2服",
+    "startTime": "2024-06-01T00:00:00.000Z",
+    "endTime": null
+  },
+  {
+    "id": "node-6",
+    "key": "4服",
+    "value": "4服",
+    "startTime": "2024-01-01T00:00:00.000Z",
+    "endTime": "2024-09-01T00:00:00.000Z"
+  },
+  {
+    "id": "node-7",
+    "key": "4服",
+    "value": "1服",
+    "startTime": "2024-09-01T00:00:00.000Z",
+    "endTime": null
+  }
+]
