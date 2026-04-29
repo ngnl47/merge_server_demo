@@ -40,10 +40,6 @@ function initGraph() {
         thickness: 1,
       },
     },
-    scroller: {
-      enabled: true,
-      pannable: true,
-    },
     mousewheel: {
       enabled: true,
       modifiers: ['ctrl', 'meta'],
