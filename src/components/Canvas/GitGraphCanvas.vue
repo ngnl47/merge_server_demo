@@ -76,42 +76,43 @@ function addTopLabels(container: HTMLElement, servers: string[]) {
 
   // 从分支路径（path）提取每个分支的起点坐标
   // 在 Horizontal 模式下，path 的 d 属性格式如：M 0 0 C ... L ... L ...
-  // M 的坐标就是分支起点
   const paths = mainGroup.querySelectorAll('g > path')
   console.log('[GitGraph] Found paths:', paths.length)
 
-  // 分支按 Y 排序，提取每条 path 的起点
-  const branchStartPoints: { y: number, startX: number }[] = []
+  // 建立 Y 坐标到 startX 的映射
+  const yToStartX: Map<number, number> = new Map()
   paths.forEach(path => {
     const d = path.getAttribute('d') || ''
-    // 提取 M x y (起点)
     const match = d.match(/^M\s*([\d.]+)\s+([\d.]+)/)
     if (match) {
       const startX = parseFloat(match[1])
-      const y = parseFloat(match[2])
-      branchStartPoints.push({ y, startX })
+      const y = Math.round(parseFloat(match[2]))
+      yToStartX.set(y, startX)
     }
   })
 
-  // 按 Y 排序
-  branchStartPoints.sort((a, b) => a.y - b.y)
-  console.log('[GitGraph] Branch start points:', branchStartPoints)
+  console.log('[GitGraph] yToStartX:', Array.from(yToStartX.entries()).sort((a, b) => a[0] - b[0]))
 
   // 创建顶部标签
   const labelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   labelGroup.setAttribute('class', 'top-labels')
 
-  // dot.size：commit group 的 Y 是左上角，dot 中心在 Y + dot.size 处
+  // dot.size
   const dotSize = 5
+  const spacing = 30 // 与 template 中 branch.spacing 一致
 
   servers.forEach((server, index) => {
-    if (index >= branchStartPoints.length) return
-    const { y: branchY, startX } = branchStartPoints[index]
+    // Y 位置直接由 index 决定（与 gitgraph 创建顺序一致）
+    const branchY = index * spacing
+    // 从映射中获取对应的 startX
+    const startX = yToStartX.get(branchY) ?? 0
 
     // X 在分支起点，向左偏移 5
     const x = startX + offsetX + dotSize - 5
     // Y 在分支线下方，向上偏移 10
     const y = branchY + offsetY + dotSize + 8 - 10
+
+    console.log(`[GitGraph] Label: ${server} -> branchY=${branchY}, startX=${startX}, x=${x}, y=${y}`)
 
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
     text.setAttribute('x', x.toString())
@@ -154,6 +155,7 @@ function renderGraph() {
   const servers = Array.from(serverSet).sort()
 
   // 创建分支映射
+  // 所有分支从第一个服务器分支分出，保证合并逻辑正确
   const branches: Record<string, ReturnType<typeof gitgraph.branch>> = {}
 
   const firstServer = servers[0]
@@ -163,6 +165,7 @@ function renderGraph() {
   })
   branches[firstServer] = mainBranch
 
+  // 其他分支立即从 mainBranch 分出（在同一位置）
   for (let i = 1; i < servers.length; i++) {
     const server = servers[i]
     branches[server] = mainBranch.branch({
@@ -170,6 +173,17 @@ function renderGraph() {
       style: { color: getBranchColor(server) },
     })
   }
+
+  // 为每个分支添加初始 commit，确保 Y 位置按 servers 顺序排列
+  servers.forEach(server => {
+    const branch = branches[server]
+    if (branch) {
+      branch.commit({
+        subject: '',
+        author: '',
+      })
+    }
+  })
 
   // 收集所有事件并按时间排序
   interface Event {
@@ -224,6 +238,17 @@ function renderGraph() {
     if (a.time !== b.time) return a.time - b.time
     return a.sortKey - b.sortKey
   })
+
+  console.log('[GitGraph] Events:', events.map(e => ({
+    type: e.type,
+    server: e.server,
+    target: e.target,
+    time: new Date(e.time).toISOString().slice(0, 10),
+    nodeKey: e.node.key,
+    nodeValue: e.node.value,
+  })))
+
+  console.log('[GitGraph] Branches:', Object.keys(branches))
 
   // 按时间顺序渲染事件
   events.forEach(event => {
