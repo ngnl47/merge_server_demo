@@ -2,7 +2,7 @@
   <div class="time-filter flex items-center gap-2">
     <span class="text-sm text-gray-600">时间范围:</span>
     <el-date-picker
-      v-model="timeRange"
+      v-model="localTimeRange"
       type="datetimerange"
       range-separator="至"
       start-placeholder="开始时间"
@@ -29,13 +29,13 @@ const emit = defineEmits<{
   reset: []
 }>()
 
-const timeRange = ref<[string, string]>([
+const localTimeRange = ref<[string, string]>([
   props.timeRange.start,
   props.timeRange.end,
 ])
 
 watch(() => props.timeRange, (newRange) => {
-  timeRange.value = [newRange.start, newRange.end]
+  localTimeRange.value = [newRange.start, newRange.end]
 })
 
 function handleChange(value: [string, string] | null) {

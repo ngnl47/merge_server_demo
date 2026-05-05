@@ -20,13 +20,25 @@ class MergeServerDB extends Dexie {
 
 export const db = new MergeServerDB()
 
+// 确保数据库打开
+db.open().then(() => {
+  console.log('Database opened successfully')
+}).catch((e) => {
+  console.error('Database open error:', e)
+})
+
 /**
  * 数据库操作封装
  */
 export const dbOperations = {
   // 节点操作
   async getAllNodes(): Promise<MappingNode[]> {
-    return await db.nodes.toArray()
+    try {
+      return await db.nodes.toArray()
+    } catch (e) {
+      console.error('getAllNodes error:', e)
+      return []
+    }
   },
 
   async getNodesByTimeRange(start: string, end: string): Promise<MappingNode[]> {
@@ -61,7 +73,12 @@ export const dbOperations = {
   },
 
   async bulkAddNodes(nodes: MappingNode[]): Promise<void> {
-    await db.nodes.bulkAdd(nodes)
+    try {
+      await db.nodes.bulkAdd(nodes)
+    } catch (e) {
+      console.error('bulkAddNodes error:', e)
+      throw e
+    }
   },
 
   // 泳道操作

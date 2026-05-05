@@ -49,6 +49,7 @@ function calculateEvolutionConnections(nodes: MappingNode[]): Connection[] {
 
 /**
  * 计算汇入线（跨泳道的合并关系）
+ * 当 node.value !== node.key 时，表示该服务器合入目标服务器
  */
 function calculateMergeConnections(nodes: MappingNode[]): Connection[] {
   const connections: Connection[] = []
@@ -57,7 +58,7 @@ function calculateMergeConnections(nodes: MappingNode[]): Connection[] {
     // 只有当 value !== key 时才需要汇入线
     if (node.value === node.key) return
 
-    // 找到目标泳道中对应时间的节点
+    // 找到目标泳道中对应时间的节点（被合入的服务器）
     const targetNodes = nodes.filter(n =>
       n.key === node.value &&
       new Date(n.startTime).getTime() <= new Date(node.startTime).getTime() &&
@@ -72,11 +73,12 @@ function calculateMergeConnections(nodes: MappingNode[]): Connection[] {
         return nTime > closestTime ? n : closest
       })
 
+      // source 是发起合入的节点（当前节点），target 是被合入的目标泳道节点
       connections.push({
-        id: `merge-${target.id}-${node.id}`,
+        id: `merge-${node.id}-${target.id}`,
         type: 'merge',
-        sourceNodeId: target.id,
-        targetNodeId: node.id,
+        sourceNodeId: node.id,      // 发起合入的节点
+        targetNodeId: target.id,    // 目标泳道中的节点
       })
     }
   })
@@ -95,9 +97,9 @@ export function calculateAllConnections(nodes: MappingNode[]): Connection[] {
 }
 
 /**
- * 计算连线渲染数据
+ * 计算演进线渲染数据
  */
-export function calculateConnectionRenderData(
+function calculateEvolutionRenderData(
   connection: Connection,
   sourceNode: MappingNode,
   targetNode: MappingNode,
@@ -109,16 +111,52 @@ export function calculateConnectionRenderData(
   pixelsPerSecond: number,
   config: CanvasConfig
 ): ConnectionRenderData {
-  // 源节点右边缘中点
+  // 演进线：从源节点右边缘到目标节点左边缘
   const sourceEndTime = sourceNode.endTime || new Date().toISOString()
   const sourceX = timeToX(sourceEndTime, globalMinTime, pixelsPerSecond, config.headerWidth)
   const sourceY = swimlaneIndexToY(sourceSwimlaneIndex, swimlaneKeys, swimlanes, config)
-    + getSwimlaneHeight(sourceNode.key, swimlanes, config) / 2
+    + config.swimlaneHeight / 2
 
-  // 目标节点左边缘中点
   const targetX = timeToX(targetNode.startTime, globalMinTime, pixelsPerSecond, config.headerWidth)
   const targetY = swimlaneIndexToY(targetSwimlaneIndex, swimlaneKeys, swimlanes, config)
-    + getSwimlaneHeight(targetNode.key, swimlanes, config) / 2
+    + config.swimlaneHeight / 2
+
+  return {
+    id: connection.id,
+    type: connection.type,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+  }
+}
+
+/**
+ * 计算汇入线渲染数据
+ */
+function calculateMergeRenderData(
+  connection: Connection,
+  sourceNode: MappingNode,
+  targetNode: MappingNode,
+  sourceSwimlaneIndex: number,
+  targetSwimlaneIndex: number,
+  swimlaneKeys: string[],
+  swimlanes: { key: string; collapsed: boolean }[],
+  globalMinTime: string,
+  pixelsPerSecond: number,
+  config: CanvasConfig
+): ConnectionRenderData {
+  // 汇入线：从发起合入节点（sourceNode）左边缘，向下（或向上）连到目标泳道节点（targetNode）
+  // sourceNode 是当前节点（发起合入），targetNode 是目标泳道中的节点
+
+  const sourceX = timeToX(sourceNode.startTime, globalMinTime, pixelsPerSecond, config.headerWidth)
+  const sourceY = swimlaneIndexToY(sourceSwimlaneIndex, swimlaneKeys, swimlanes, config)
+    + config.swimlaneHeight / 2
+
+  // 目标点：目标泳道节点中点偏左一点（便于视觉识别）
+  const targetX = timeToX(sourceNode.startTime, globalMinTime, pixelsPerSecond, config.headerWidth)
+  const targetY = swimlaneIndexToY(targetSwimlaneIndex, swimlaneKeys, swimlanes, config)
+    + config.swimlaneHeight / 2
 
   return {
     id: connection.id,
@@ -161,18 +199,33 @@ export function calculateAllConnectionRenderData(
     const sourceIndex = swimlaneKeys.indexOf(sourceNode.key)
     const targetIndex = swimlaneKeys.indexOf(targetNode.key)
 
-    return calculateConnectionRenderData(
-      conn,
-      sourceNode,
-      targetNode,
-      sourceIndex,
-      targetIndex,
-      swimlaneKeys,
-      swimlanes,
-      globalMinTime,
-      pixelsPerSecond,
-      config
-    )
+    if (conn.type === 'merge') {
+      return calculateMergeRenderData(
+        conn,
+        sourceNode,
+        targetNode,
+        sourceIndex,
+        targetIndex,
+        swimlaneKeys,
+        swimlanes,
+        globalMinTime,
+        pixelsPerSecond,
+        config
+      )
+    } else {
+      return calculateEvolutionRenderData(
+        conn,
+        sourceNode,
+        targetNode,
+        sourceIndex,
+        targetIndex,
+        swimlaneKeys,
+        swimlanes,
+        globalMinTime,
+        pixelsPerSecond,
+        config
+      )
+    }
   })
 }
 

@@ -1,39 +1,23 @@
 <template>
-  <div class="canvas-container flex flex-col h-full">
-    <!-- 时间轴标尺 -->
-    <TimelineRuler
-      :min-time="globalMinTime"
-      :max-time="globalMaxTime"
+  <div class="canvas-container flex flex-col flex-1 overflow-hidden">
+    <!-- X6 画布（包含时间刻度） -->
+    <GraphCanvas
+      ref="graphCanvasRef"
+      :nodes="nodes"
+      :swimlanes="swimlanes"
+      :global-min-time="globalMinTime"
+      :global-max-time="globalMaxTime"
       :pixels-per-second="pixelsPerSecond"
-      :header-width="headerWidth"
+      :config="canvasConfig"
+      :highlighted-swimlane="highlightedSwimlane"
+      @node-click="$emit('node-click', $event)"
     />
-    <div class="flex flex-1 overflow-hidden">
-      <!-- 泳道标签 -->
-      <SwimlaneLabel
-        :swimlane-keys="swimlaneKeys"
-        :swimlanes="swimlanes"
-        :config="canvasConfig"
-        @toggle-collapse="$emit('toggle-collapse', $event)"
-      />
-      <!-- X6 画布 -->
-      <GraphCanvas
-        ref="graphCanvasRef"
-        :nodes="nodes"
-        :swimlanes="swimlanes"
-        :global-min-time="globalMinTime"
-        :pixels-per-second="pixelsPerSecond"
-        :config="canvasConfig"
-        :current-time="currentTime"
-      />
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref } from 'vue'
 import type { MappingNode, Swimlane, CanvasConfig } from '@/types/mapping'
-import TimelineRuler from './TimelineRuler.vue'
-import SwimlaneLabel from './SwimlaneLabel.vue'
 import GraphCanvas from './GraphCanvas.vue'
 
 const props = defineProps<{
@@ -43,23 +27,28 @@ const props = defineProps<{
   globalMaxTime: string
   pixelsPerSecond: number
   canvasConfig: CanvasConfig
-  currentTime: string | null
+  highlightedSwimlane: string | null
 }>()
 
 defineEmits<{
-  'toggle-collapse': [key: string]
+  'node-click': [node: MappingNode]
 }>()
 
-const swimlaneKeys = computed(() => {
-  const keySet = new Set<string>()
-  props.nodes.forEach(n => {
-    keySet.add(n.key)
-    keySet.add(n.value)
-  })
-  return Array.from(keySet).sort()
-})
+const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
 
-const headerWidth = computed(() => props.canvasConfig.headerWidth)
+// 暴露方法给父组件
+function centerOnSwimlane(key: string) {
+  graphCanvasRef.value?.centerOnSwimlane(key)
+}
+
+function centerOnTime(time: string) {
+  graphCanvasRef.value?.centerOnTime(time)
+}
+
+defineExpose({
+  centerOnSwimlane,
+  centerOnTime,
+})
 </script>
 
 <style scoped>

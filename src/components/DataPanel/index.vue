@@ -7,6 +7,14 @@
       <JsonEditor :nodes="nodes" @change="handleJsonChange" />
     </el-tab-pane>
   </el-tabs>
+  <div class="panel-footer p-2 border-t border-gray-200">
+    <el-button type="primary" size="small" @click="handleLoadSeed">
+      加载示例数据
+    </el-button>
+    <el-button type="danger" size="small" @click="handleClearData">
+      清空数据
+    </el-button>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -14,6 +22,7 @@ import { ref } from 'vue'
 import type { MappingNode } from '@/types/mapping'
 import FormInput from './FormInput.vue'
 import JsonEditor from './JsonEditor.vue'
+import seedData from '@/data/seed.json'
 
 defineProps<{
   nodes: MappingNode[]
@@ -32,6 +41,14 @@ function handleSubmit(node: MappingNode) {
 
 function handleJsonChange(nodes: MappingNode[]) {
   emit('change', nodes)
+}
+
+function handleLoadSeed() {
+  emit('change', seedData as MappingNode[])
+}
+
+function handleClearData() {
+  emit('change', [])
 }
 </script>
 

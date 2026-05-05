@@ -10,7 +10,13 @@
       "Bash(npm create *)",
       "Bash(npm init *)",
       "Bash(npm install *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npx vite *)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(npx playwright *)",
+      "Bash(npm exec *)",
+      "Bash(node *)"
     ]
   }
 }

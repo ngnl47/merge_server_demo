@@ -31,7 +31,8 @@ export function xToTime(
 }
 
 /**
- * 泳道索引转 Y 坐标
+ * 泳道索引转 Y 坐标（固定高度，不考虑折叠）
+ * 注意：返回的 Y 坐标不包含时间轴高度偏移，在渲染时需要额外添加
  */
 export function swimlaneIndexToY(
   index: number,
@@ -39,26 +40,24 @@ export function swimlaneIndexToY(
   swimlanes: { key: string; collapsed: boolean }[],
   config: CanvasConfig
 ): number {
-  let y = config.timeAxisHeight
+  let y = 0
+  // 固定使用 swimlaneHeight，不处理折叠
   for (let i = 0; i < index; i++) {
-    const key = swimlaneKeys[i]
-    const swimlane = swimlanes.find(s => s.key === key)
-    const height = swimlane?.collapsed ? config.collapsedSwimlaneHeight : config.swimlaneHeight
-    y += height
+    y += config.swimlaneHeight
   }
   return y
 }
 
 /**
- * 获取泳道高度
+ * 获取泳道高度（固定高度，不考虑折叠）
  */
 export function getSwimlaneHeight(
   key: string,
   swimlanes: { key: string; collapsed: boolean }[],
   config: CanvasConfig
 ): number {
-  const swimlane = swimlanes.find(s => s.key === key)
-  return swimlane?.collapsed ? config.collapsedSwimlaneHeight : config.swimlaneHeight
+  // 固定使用 swimlaneHeight
+  return config.swimlaneHeight
 }
 
 /**
@@ -75,7 +74,7 @@ export function calculateNodeRenderData(
 ): NodeRenderData {
   const x = timeToX(node.startTime, globalMinTime, pixelsPerSecond, config.headerWidth)
   const y = swimlaneIndexToY(swimlaneIndex, swimlaneKeys, swimlanes, config)
-  const height = getSwimlaneHeight(node.key, swimlanes, config)
+  const height = config.swimlaneHeight
 
   // 计算宽度
   const startTimeMs = new Date(node.startTime).getTime()

@@ -14,11 +14,11 @@ export const useMappingStore = defineStore('mapping', () => {
   // 视口状态
   const viewportState = ref<ViewportState>({
     timeRange: {
-      start: dayjs().subtract(1, 'year').toISOString(),
+      start: dayjs('2024-01-01').toISOString(),
       end: dayjs().toISOString(),
     },
     currentTime: null,
-    pixelsPerSecond: 0.1,
+    pixelsPerSecond: 0.001, // 每秒0.001像素，约每天86像素
   })
 
   // 画布配置
@@ -27,8 +27,8 @@ export const useMappingStore = defineStore('mapping', () => {
     collapsedSwimlaneHeight: 30,
     headerWidth: 120,
     timeAxisHeight: 40,
-    minPixelsPerSecond: 0.01,
-    maxPixelsPerSecond: 1,
+    minPixelsPerSecond: 0.0001, // 每秒0.0001像素，约每天8.6像素
+    maxPixelsPerSecond: 0.01, // 每秒0.01像素，约每天864像素
   })
 
   // 计算属性：获取所有唯一的泳道 Key
@@ -132,6 +132,7 @@ export const useMappingStore = defineStore('mapping', () => {
       await dbOperations.bulkAddNodes(newNodes)
       nodes.value = newNodes
     } catch (e) {
+      console.error('[Store] importNodes error:', e)
       error.value = e instanceof Error ? e.message : '导入数据失败'
       throw e
     }
