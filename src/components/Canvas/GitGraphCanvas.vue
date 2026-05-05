@@ -6,6 +6,7 @@
 import { ref, onMounted, onUnmounted, watchEffect } from 'vue'
 import { createGitgraph, Orientation, templateExtend, TemplateName } from '@gitgraph/js'
 import type { MappingNode, Swimlane, CanvasConfig } from '@/types/mapping'
+import dayjs from 'dayjs'
 
 // 自定义模板：缩小线条和字体，适合大量服务器
 const compactTemplate = templateExtend(TemplateName.Metro, {
@@ -206,6 +207,7 @@ function renderGraph() {
     const startTime = new Date(node.startTime).getTime()
 
     if (node.value === node.key) {
+      // 独立运行：只添加一个 commit
       events.push({
         time: startTime,
         sortKey: 0,
@@ -214,26 +216,13 @@ function renderGraph() {
         node,
       })
     } else {
+      // 合服：只执行 merge，不额外添加 commit
       events.push({
         time: startTime,
         sortKey: 1,
-        type: 'commit',
-        server: node.key,
-        node,
-      })
-      events.push({
-        time: startTime,
-        sortKey: 2,
-        type: 'commit',
-        server: node.value,
-        node,
-      })
-      events.push({
-        time: startTime,
-        sortKey: 3,
         type: 'merge',
-        server: node.key,
-        target: node.value,
+        server: node.key,    // 源分支
+        target: node.value,  // 目标分支
         node,
       })
     }
@@ -261,20 +250,30 @@ function renderGraph() {
     if (!branch) return
 
     const n = event.node
-    const dateLabel = new Date(event.time).toISOString().slice(0, 10)
-    const endTimeLabel = n.endTime ? new Date(n.endTime).toISOString().slice(0, 10) : '至今'
+    const endTimeLabel = n.endTime ? dayjs(n.endTime).format('YYYY-MM-DD HH:mm:ss') : '至今'
 
     if (event.type === 'commit') {
       const status = n.value === n.key ? '独立运行' : `→ ${n.value}`
+      const timeLabel = dayjs(event.time).format('YYYY-MM-DD HH:mm:ss')
+      console.log(`[GitGraph] Commit on ${event.server}: status=${status}, nodeKey=${n.key}, nodeValue=${n.value}`)
       branch.commit({
-        subject: `${n.key} ${status} (${dateLabel})`,
-        body: `Key: ${n.key}\nValue: ${n.value}\n开始: ${dateLabel}\n结束: ${endTimeLabel}`,
+        subject: `${n.key} ${status} (${timeLabel})`,
+        body: `Key: ${n.key}\nValue: ${n.value}\n开始: ${timeLabel}\n结束: ${endTimeLabel}`,
         author: '',
       })
     } else if (event.type === 'merge') {
+      console.log(`[GitGraph] Merge: ${event.server} → ${event.target!}`)
       const targetBranch = branches[event.target!]
+      // 使用本地时间格式
+      const timeLabel = dayjs(event.time).format('YYYY-MM-DD HH:mm:ss')
       if (targetBranch) {
-        targetBranch.merge(branch, `${event.server} → ${event.target!}`)
+        targetBranch.merge({
+          branch,
+          commitOptions: {
+            subject: `${event.server} → ${event.target!} (${timeLabel})`,
+            author: '',
+          },
+        })
       }
     }
   })
