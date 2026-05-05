@@ -17,7 +17,7 @@ const compactTemplate = templateExtend(TemplateName.Metro, {
     },
   },
   commit: {
-    spacing: 20,
+    spacing: 10,
     dot: {
       size: 5,
     },
