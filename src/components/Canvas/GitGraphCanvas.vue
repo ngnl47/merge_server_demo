@@ -108,10 +108,10 @@ function addTopLabels(container: HTMLElement, servers: string[]) {
     if (index >= branchStartPoints.length) return
     const { y: branchY, startX } = branchStartPoints[index]
 
-    // X 在分支起点
-    const x = startX + offsetX + dotSize // 加 dot 偏移
-    // Y 在分支线下方
-    const y = branchY + offsetY + dotSize + 8
+    // X 在分支起点，向左偏移 5
+    const x = startX + offsetX + dotSize - 5
+    // Y 在分支线下方，向上偏移 10
+    const y = branchY + offsetY + dotSize + 8 - 10
 
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
     text.setAttribute('x', x.toString())
