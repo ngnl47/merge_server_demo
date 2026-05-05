@@ -16,7 +16,11 @@
       "Bash(npx --yes playwright --version)",
       "Bash(npx playwright *)",
       "Bash(npm exec *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "WebSearch",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:gitgraph-js.com)"
     ]
   }
 }

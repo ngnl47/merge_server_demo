@@ -13,6 +13,7 @@
     "@antv/x6": "^2.18.1",
     "@antv/x6-vue-shape": "^2.1.2",
     "@element-plus/icons-vue": "^2.1.0",
+    "@gitgraph/js": "^1.4.0",
     "axios": "^1.4.0",
     "dayjs": "^1.11.10",
     "dexie": "^4.0.4",

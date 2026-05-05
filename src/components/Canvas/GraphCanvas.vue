@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watchEffect } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watchEffect, nextTick } from 'vue'
 import { Graph, Shape } from '@antv/x6'
 import type { MappingNode, Swimlane, CanvasConfig } from '@/types/mapping'
 import { calculateAllNodeRenderData, formatTimeRange } from '@/utils/timeAxis'
@@ -45,6 +45,7 @@ const emit = defineEmits<{
 const containerRef = ref<HTMLDivElement>()
 let graph: Graph | null = null
 const timeAxisHeight = 40
+let resizeObserver: ResizeObserver | null = null
 
 // 从节点数据提取泳道 Key 列表
 const swimlaneKeys = computed(() => {
@@ -106,39 +107,60 @@ function getTimeTicks(): { x: number; label: string }[] {
 function initGraph() {
   if (!containerRef.value) return
 
-  const width = containerRef.value.clientWidth || 800
-  const height = containerRef.value.clientHeight || 600
+  // 使用 ResizeObserver 监听容器尺寸变化
+  // 当容器尺寸变为有效值时初始化 graph
+  resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const { width, height } = entry.contentRect
+      console.log('[GraphCanvas] resizeObserver:', width, height, 'graph:', graph ? 'exists' : 'null')
 
-  graph = new Graph({
-    container: containerRef.value,
-    width,
-    height,
-    background: {
-      color: '#f5f7fa',
-    },
-    grid: {
-      size: 10,
-      visible: false,
-    },
-    panning: {
-      enabled: true,
-    },
-    mousewheel: {
-      enabled: true,
-    },
-    interacting: {
-      nodeMovable: false,
-    },
-  })
+      if (width > 0 && height > 0) {
+        if (!graph) {
+          // 容器有尺寸但 graph 未初始化，现在初始化
+          console.log('[GraphCanvas] Creating graph with size:', width, height)
+          graph = new Graph({
+            container: containerRef.value,
+            width,
+            height,
+            background: {
+              color: '#f5f7fa',
+            },
+            grid: {
+              size: 10,
+              visible: false,
+            },
+            panning: {
+              enabled: true,
+            },
+            mousewheel: {
+              enabled: true,
+            },
+            interacting: {
+              nodeMovable: false,
+            },
+          })
 
-  // 监听节点点击
-  graph.on('node:click', ({ node }) => {
-    const nodeId = node.id
-    const nodeData = props.nodes.find(n => n.id === nodeId)
-    if (nodeData) {
-      emit('node-click', nodeData)
+          // 监听节点点击
+          graph.on('node:click', ({ node }) => {
+            const nodeId = node.id
+            const nodeData = props.nodes.find(n => n.id === nodeId)
+            if (nodeData) {
+              emit('node-click', nodeData)
+            }
+          })
+
+          // 初始化后立即渲染
+          if (props.nodes.length > 0) {
+            scheduleRender()
+          }
+        } else {
+          // graph 已存在，只更新尺寸
+          graph.resize(width, height)
+        }
+      }
     }
   })
+  resizeObserver.observe(containerRef.value)
 }
 
 // 防抖渲染：多次 watchEffect 触发时只执行最后一次
@@ -346,7 +368,6 @@ function renderNodes() {
 
 onMounted(() => {
   initGraph()
-  renderNodes()
 })
 
 // 定位到指定泳道（居中显示）
@@ -402,6 +423,7 @@ watchEffect(() => {
 
 onUnmounted(() => {
   cancelAnimationFrame(renderRAF)
+  resizeObserver?.disconnect()
   graph?.dispose()
 })
 
@@ -409,14 +431,35 @@ defineExpose({
   renderNodes,
   centerOnSwimlane,
   centerOnTime,
+  resize: () => {
+    if (graph && containerRef.value) {
+      const width = containerRef.value.clientWidth
+      const height = containerRef.value.clientHeight
+      if (width > 0 && height > 0) {
+        graph.resize(width, height)
+      }
+    }
+  },
+  forceResize: () => {
+    if (graph && containerRef.value) {
+      // 强制获取尺寸，即使容器可能还在渲染中
+      requestAnimationFrame(() => {
+        const width = containerRef.value?.clientWidth || 0
+        const height = containerRef.value?.clientHeight || 0
+        console.log('[GraphCanvas] forceResize:', width, height)
+        if (width > 0 && height > 0 && graph) {
+          graph.resize(width, height)
+        }
+      })
+    }
+  },
 })
 </script>
 
 <style scoped>
 .graph-canvas {
-  flex: 1;
   width: 100%;
-  min-height: 400px;
+  height: 100%;
   overflow: hidden;
 }
 </style>
