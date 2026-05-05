@@ -146,13 +146,18 @@ function renderGraph() {
     template: compactTemplate,
   })
 
-  // 提取所有服务器并排序
+  // 提取所有服务器并按数字排序
   const serverSet = new Set<string>()
   props.nodes.forEach(n => {
     serverSet.add(n.key)
     serverSet.add(n.value)
   })
-  const servers = Array.from(serverSet).sort()
+  // 提取数字部分进行排序，如 "10服" -> 10, "1服" -> 1
+  const servers = Array.from(serverSet).sort((a, b) => {
+    const numA = parseInt(a.match(/\d+/)?.[0] || '0')
+    const numB = parseInt(b.match(/\d+/)?.[0] || '0')
+    return numA - numB
+  })
 
   // 创建分支映射
   // 所有分支从第一个服务器分支分出，保证合并逻辑正确
