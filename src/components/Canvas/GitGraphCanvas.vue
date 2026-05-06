@@ -254,9 +254,17 @@ function renderGroupGraph(groupId: string, servers: string[], groupNodes: Mappin
     }
   })
 
-  // 渲染后添加顶部标签
+  // 渲染后添加顶部标签并移除原生tooltip
   requestAnimationFrame(() => {
     addTopLabels(container, servers)
+    // 移除gitgraph原生tooltip（path背景和关联的text）
+    const tooltipPaths = container.querySelectorAll('svg path[fill="#EEE"]')
+    tooltipPaths.forEach(path => {
+      const parentG = path.parentElement
+      if (parentG && parentG.tagName === 'g') {
+        parentG.remove()
+      }
+    })
   })
 }
 
@@ -421,7 +429,7 @@ defineExpose({
 
 .graph-container {
   flex: 1;
-  overflow: visible;
+  overflow: auto;
   min-height: 0;
 }
 
@@ -436,17 +444,11 @@ defineExpose({
 </style>
 
 <style>
-/* 全局样式：缩小gitgraph tooltip */
-.git-graph-canvas foreignObject {
-  overflow: visible !important;
+/* 全局样式：隐藏gitgraph原生tooltip */
+.git-graph-canvas svg path[fill="#EEE"] {
+  display: none !important;
 }
-.git-graph-canvas foreignObject p {
-  font-size: 9px !important;
-  padding: 2px 4px !important;
-  margin: 0 !important;
-  line-height: 1.2 !important;
-  background: #fff !important;
-  border-radius: 3px !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+.git-graph-canvas svg text[fill="#333"] {
+  display: none !important;
 }
 </style>
