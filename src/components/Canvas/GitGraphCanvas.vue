@@ -3,6 +3,7 @@
     <div v-for="group in graphGroups" :key="group.id" class="graph-group">
       <div class="group-title">{{ group.servers.join(', ') }}</div>
       <div :ref="el => groupRefs[group.id] = el" class="graph-container"></div>
+      <div class="group-info">{{ groupInfo[group.id] || 'hover节点查看详情' }}</div>
     </div>
   </div>
 </template>
@@ -83,21 +84,22 @@ function findConnectedComponents(nodes: MappingNode[]): string[][] {
   return components
 }
 
-// 自定义模板：缩小线条和字体，适合大量服务器
+// 自定义模板：缩小线条和字体，禁用tooltip
 function createCompactTemplate() {
   return templateExtend(TemplateName.Metro, {
     branch: {
       lineWidth: 2,
       spacing: 30,
       label: {
-        display: false,  // 隐藏 gitgraph 内置标签，改用顶部自定义标签
+        display: false,
       },
     },
     commit: {
       spacing: 10,
       dot: {
-        size: 5,
+        size: 3,
       },
+      hasTooltipInCompactMode: false,  // 禁用tooltip弹出
     },
   })
 }
@@ -118,6 +120,7 @@ const emit = defineEmits<{
 
 const containerRef = ref<HTMLDivElement>()
 const groupRefs: Record<string, HTMLDivElement | null> = reactive({})
+const groupInfo: Record<string, string> = reactive({})
 
 // 图分组数据
 interface GraphGroup {
@@ -223,6 +226,12 @@ function renderGroupGraph(groupId: string, servers: string[], groupNodes: Mappin
       branch.commit({
         subject: `${n.key} ${status} (${timeLabel})`,
         author: '',
+        onMouseOver: () => {
+          groupInfo[groupId] = `${n.key} ${status} (${timeLabel})`
+        },
+        onMouseOut: () => {
+          groupInfo[groupId] = ''
+        },
       })
     } else if (event.type === 'merge') {
       const targetBranch = branches[event.target!]
@@ -233,6 +242,12 @@ function renderGroupGraph(groupId: string, servers: string[], groupNodes: Mappin
           commitOptions: {
             subject: `${event.server} → ${event.target!} (${timeLabel})`,
             author: '',
+            onMouseOver: () => {
+              groupInfo[groupId] = `${event.server} → ${event.target!} (${timeLabel})`
+            },
+            onMouseOut: () => {
+              groupInfo[groupId] = ''
+            },
           },
         })
       }
@@ -289,7 +304,7 @@ function addTopLabels(container: HTMLElement, servers: string[]) {
     text.setAttribute('y', y.toString())
     text.setAttribute('text-anchor', 'middle')
     text.setAttribute('dominant-baseline', 'hanging')
-    text.setAttribute('font-size', '10')
+    text.setAttribute('font-size', '8')
     text.setAttribute('fill', getBranchColor(server))
     text.textContent = server
     labelGroup.appendChild(text)
@@ -370,7 +385,7 @@ defineExpose({
 .git-graph-canvas {
   width: 100%;
   height: 100%;
-  overflow: auto;
+  overflow: visible;
   padding: 20px;
   display: flex;
   flex-wrap: wrap;
@@ -383,17 +398,55 @@ defineExpose({
   border-radius: 8px;
   padding: 10px;
   background: #fafafa;
+  width: 260px;
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.graph-group:hover {
+  z-index: 10;
 }
 
 .group-title {
-  font-size: 12px;
+  font-size: 10px;
   color: #909399;
-  margin-bottom: 8px;
-  padding-bottom: 4px;
+  margin-bottom: 6px;
+  padding-bottom: 3px;
   border-bottom: 1px dashed #e4e7ed;
 }
 
 .graph-container {
-  min-height: 60px;
+  flex: 1;
+  overflow: visible;
+  min-height: 0;
+}
+
+.group-info {
+  font-size: 10px;
+  color: #606266;
+  padding: 6px;
+  background: #f5f7fa;
+  border-top: 1px solid #e4e7ed;
+  min-height: 20px;
+}
+</style>
+
+<style>
+/* 全局样式：缩小gitgraph tooltip */
+.git-graph-canvas foreignObject {
+  overflow: visible !important;
+}
+.git-graph-canvas foreignObject p {
+  font-size: 9px !important;
+  padding: 2px 4px !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  background: #fff !important;
+  border-radius: 3px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
 }
 </style>
